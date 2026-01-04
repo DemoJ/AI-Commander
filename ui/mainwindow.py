@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(900, 700) 
+        self.setWindowIcon(QIcon("assets/icon.png"))
         
         self.config = ConfigManager()
         self.ai_service = AIService(self.config)
