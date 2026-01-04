@@ -1,0 +1,222 @@
+# Color Palette
+COLORS = {
+    "background": "#1e1e2e",       # Deep dark blue/gray
+    "surface": "#252535",          # Slightly lighter for cards
+    "surface_hover": "#2f2f45",    # Hover state for surface
+    "primary": "#7aa2f7",          # Bright Blue
+    "primary_hover": "#8ab0ff",    # Lighter Blue
+    "secondary": "#bb9af7",        # Purple accent
+    "text_main": "#c0caf5",        # Light gray/blue text
+    "text_dim": "#787c99",         # Dimmed text
+    "border": "#3b3b50",           # Border color
+    "success": "#9ece6a",          # Green
+    "error": "#f7768e",            # Red
+    "warning": "#e0af68",          # Orange/Yellow
+    "input_bg": "#181825"          # Darker for inputs
+}
+
+APP_STYLE = f"""
+/* Global Reset */
+QWidget {{
+    color: {COLORS['text_main']};
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    font-size: 14px;
+}}
+
+/* Main Window & Dialog Backgrounds */
+QMainWindow, QDialog {{
+    background-color: {COLORS['background']};
+}}
+
+/* Make Labels Transparent (Fixes 'Shadow' artifact) */
+QLabel {{
+    background-color: transparent;
+}}
+
+/* Scrollbars */
+QScrollBar:vertical {{
+    border: none;
+    background: {COLORS['background']};
+    width: 8px;
+    margin: 0px 0px 0px 0px;
+}}
+QScrollBar::handle:vertical {{
+    background: {COLORS['border']};
+    min-height: 20px;
+    border-radius: 4px;
+}}
+QScrollBar::handle:vertical:hover {{
+    background: {COLORS['primary']};
+}}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0px;
+}}
+
+/* Tooltips */
+QToolTip {{
+    background-color: {COLORS['surface']};
+    color: {COLORS['text_main']};
+    border: 1px solid {COLORS['border']};
+    padding: 5px;
+}}
+
+/* Generic QFrame as Card */
+QFrame.CardFrame {{
+    background-color: {COLORS['surface']};
+    border: 1px solid {COLORS['border']};
+    border-radius: 12px;
+}}
+
+/* Buttons */
+QPushButton {{
+    background-color: {COLORS['surface']};
+    border: 1px solid {COLORS['border']};
+    color: {COLORS['text_main']};
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+}}
+QPushButton:hover {{
+    background-color: {COLORS['surface_hover']};
+    border-color: {COLORS['primary']};
+}}
+QPushButton:pressed {{
+    background-color: {COLORS['primary']};
+    color: {COLORS['background']};
+}}
+QPushButton:disabled {{
+    background-color: {COLORS['background']};
+    color: {COLORS['text_dim']};
+    border-color: {COLORS['border']};
+}}
+
+/* Primary Action Button */
+QPushButton.PrimaryButton {{
+    background-color: {COLORS['primary']};
+    color: {COLORS['background']};
+    border: none;
+}}
+QPushButton.PrimaryButton:hover {{
+    background-color: {COLORS['primary_hover']};
+}}
+
+/* Inputs */
+QLineEdit, QTextEdit {{
+    background-color: {COLORS['input_bg']};
+    border: 1px solid {COLORS['border']};
+    border-radius: 8px;
+    padding: 8px;
+    color: {COLORS['text_main']};
+    selection-background-color: {COLORS['primary']};
+    selection-color: {COLORS['background']};
+}}
+QLineEdit:focus, QTextEdit:focus {{
+    border: 1px solid {COLORS['primary']};
+}}
+
+/* Progress Bar */
+QProgressBar {{
+    background-color: {COLORS['input_bg']};
+    border: none;
+    border-radius: 4px;
+    height: 8px;
+    text-align: center;
+}}
+QProgressBar::chunk {{
+    background-color: {COLORS['primary']};
+    border-radius: 4px;
+}}
+
+/* Labels */
+QLabel.Header {{
+    font-size: 18px;
+    font-weight: bold;
+    color: {COLORS['text_main']};
+}}
+QLabel.SubHeader {{
+    font-size: 14px;
+    font-weight: 600;
+    color: {COLORS['text_dim']};
+}}
+
+/* Custom Title Bar */
+QFrame#TitleBar {{
+    background-color: {COLORS['background']};
+    border-bottom: 1px solid {COLORS['border']};
+}}
+QPushButton.TitleBarButton {{
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 5px;
+}}
+QPushButton.TitleBarButton:hover {{
+    background-color: {COLORS['surface']};
+}}
+QPushButton#CloseButton:hover {{
+    background-color: {COLORS['error']};
+    color: white;
+}}
+
+/* Sidebar */
+QFrame#Sidebar {{
+    background-color: {COLORS['input_bg']};
+    border-right: 1px solid {COLORS['border']};
+}}
+
+QPushButton.SidebarButton {{
+    text-align: left;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 0px;
+    background-color: transparent;
+    color: {COLORS['text_dim']};
+    font-size: 15px;
+}}
+QPushButton.SidebarButton:hover {{
+    background-color: {COLORS['surface']};
+    color: {COLORS['text_main']};
+}}
+QPushButton.SidebarButton:checked {{
+    background-color: {COLORS['surface']};
+    color: {COLORS['primary']};
+    border-left: 3px solid {COLORS['primary']};
+    font-weight: bold;
+}}
+
+/* List Widget */
+QListWidget {{
+    background-color: {COLORS['input_bg']};
+    border: 1px solid {COLORS['border']};
+    border-radius: 8px;
+    padding: 5px;
+    outline: none;
+}}
+QListWidget::item {{
+    padding: 8px;
+    border-radius: 6px;
+    color: {COLORS['text_main']};
+}}
+QListWidget::item:selected {{
+    background-color: {COLORS['surface_hover']};
+    color: {COLORS['primary']};
+    border: 1px solid {COLORS['primary']};
+}}
+QListWidget::item:hover {{
+    background-color: {COLORS['surface']};
+}}
+
+/* Splitter */
+QSplitter::handle {{
+    background-color: {COLORS['border']};
+}}
+QSplitter::handle:hover {{
+    background-color: {COLORS['primary']};
+}}
+QSplitter::handle:horizontal {{
+    width: 2px;
+}}
+QSplitter::handle:vertical {{
+    height: 2px;
+}}
+"""
