@@ -1,7 +1,11 @@
 from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QHBoxLayout, 
                              QFrame, QVBoxLayout, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QSize
+from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QHBoxLayout, 
+                             QFrame, QVBoxLayout, QGraphicsDropShadowEffect)
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QSize
 from PyQt6.QtGui import QColor, QDragEnterEvent, QDropEvent, QMouseEvent, QPixmap
+from utils.helpers import resource_path
 
 class CardFrame(QFrame):
     """A container with a background, border, and optional shadow."""
@@ -41,7 +45,7 @@ class CustomTitleBar(QFrame):
 
         # Icon
         self.icon_label = QLabel()
-        pixmap = QPixmap("assets/icon.png")
+        pixmap = QPixmap(resource_path("assets/icon.png"))
         if not pixmap.isNull():
              self.icon_label.setPixmap(pixmap.scaled(24, 24, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         layout.addWidget(self.icon_label)

@@ -11,6 +11,7 @@ from PyQt6.QtGui import QIcon, QDragEnterEvent, QDropEvent, QMouseEvent, QAction
 
 from ui.settings_dialog import SettingsDialog
 from utils.config import ConfigManager
+from utils.helpers import resource_path
 from core.ai_service import AIService
 from core.ffmpeg_runner import FFmpegRunner
 
@@ -41,7 +42,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.resize(900, 700) 
-        self.setWindowIcon(QIcon("assets/icon.png"))
+        self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
         
         self.config = ConfigManager()
         self.ai_service = AIService(self.config)
@@ -416,6 +417,16 @@ class MainWindow(QMainWindow):
         if not self.input_files:
             QMessageBox.warning(self, "警告", "请先在第一步中添加视频文件。" )
             self.switch_page(0)
+            return
+
+        # Check FFmpeg path before generating
+        ffmpeg_path = self.config.get("ffmpeg_path")
+        if not ffmpeg_path or not os.path.exists(ffmpeg_path):
+            QMessageBox.warning(
+                self, 
+                "未找到 FFmpeg", 
+                f"在以下路径未找到 FFmpeg 执行文件：\n{ffmpeg_path}\n\n请点击右上角设置图标 (⚙) 配置正确的路径。"
+            )
             return
 
         requirement = self.requirement_text.toPlainText().strip()

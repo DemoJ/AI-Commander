@@ -1,5 +1,6 @@
 .venv
-ffmpeg
+ffmpeg/
 __pycache__/
 *.pyc
 config.json
+output/
