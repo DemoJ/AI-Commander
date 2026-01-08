@@ -625,6 +625,10 @@ class MainWindow(QMainWindow):
         
         self.generate_btn.setEnabled(True)
         self.generate_btn.setText("✨ 重新生成")
+        
+        self.unlocked_step = 2
+        self.switch_page(2)
+        
         self.execute_btn.setEnabled(True)
         self.execute_btn.show()
         self.btn_new_task.hide()
