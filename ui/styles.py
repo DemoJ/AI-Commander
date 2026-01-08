@@ -1,3 +1,10 @@
+from utils.helpers import resource_path
+import os
+
+# Get resource paths and convert backslashes to forward slashes for Qt Style Sheets
+ARROW_DOWN = resource_path(os.path.join("assets", "arrow_down.svg")).replace("\\", "/")
+ARROW_DOWN_ACTIVE = resource_path(os.path.join("assets", "arrow_down_active.svg")).replace("\\", "/")
+
 # Color Palette
 COLORS = {
     "background": "#1e1e2e",       # Deep dark blue/gray
@@ -240,14 +247,14 @@ QComboBox::drop-down {{
 }}
 
 QComboBox::down-arrow {{
-    image: url(assets/arrow_down.svg);
+    image: url({ARROW_DOWN});
     width: 14px;
     height: 14px;
     margin-right: 8px;
 }}
 
 QComboBox::down-arrow:hover, QComboBox::down-arrow:on {{
-    image: url(assets/arrow_down_active.svg);
+    image: url({ARROW_DOWN_ACTIVE});
 }}
 
 /* The Popup List */
