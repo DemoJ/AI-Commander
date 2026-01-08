@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QTextEdit, QLineEdit, 
                              QFileDialog, QProgressBar, QMessageBox, QFrame,
                              QSizeGrip, QListWidget, QStackedWidget, QListWidgetItem,
-                             QMenu, QButtonGroup, QSplitter)
+                             QMenu, QButtonGroup, QSplitter, QComboBox, QTabWidget)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QPoint
 from PyQt6.QtGui import QIcon, QDragEnterEvent, QDropEvent, QMouseEvent, QAction, QCursor
 
@@ -16,7 +16,7 @@ from core.ai_service import AIService
 from core.ffmpeg_runner import FFmpegRunner
 
 # Import Custom Components
-from ui.custom_widgets import CustomTitleBar, CardFrame, ModernButton, DropLabel
+from ui.custom_widgets import CustomTitleBar, CardFrame, ModernButton, DropLabel, TaskItemWidget, AnimatedStackedWidget
 from ui.styles import APP_STYLE
 
 class AIWorker(QThread):
@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         content_layout = QVBoxLayout(content_area)
         content_layout.setContentsMargins(20, 0, 20, 20)
         
-        self.content_stack = QStackedWidget()
+        self.content_stack = AnimatedStackedWidget()
         content_layout.addWidget(self.content_stack)
         self.root_layout.addWidget(content_area)
 
@@ -241,13 +241,51 @@ class MainWindow(QMainWindow):
         card = CardFrame()
         card_layout = QVBoxLayout(card)
         
-        lbl = QLabel("请输入自然语言指令 (例如：'转为mp4格式，分辨率720p，去掉前10秒')")
+        # --- Quick Actions Section ---
+        lbl_quick = QLabel("⚡ 快速格式转换 (不使用 AI):")
+        lbl_quick.setProperty("class", "SubHeader")
+        card_layout.addWidget(lbl_quick)
+
+        quick_layout = QHBoxLayout()
+        quick_layout.addWidget(QLabel("将选中的文件转换为:"))
+        
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["mp4", "mp3", "mkv", "mov", "wav", "flac", "avi", "webm", "自定义"])
+        self.format_combo.setEditable(False) 
+        self.format_combo.currentTextChanged.connect(self.on_format_combo_changed)
+        quick_layout.addWidget(self.format_combo)
+        
+        self.custom_format_input = QLineEdit()
+        self.custom_format_input.setPlaceholderText("输入格式 (如 m4a)")
+        self.custom_format_input.setFixedWidth(160)
+        self.custom_format_input.hide() # Initially hidden
+        self.custom_format_input.textChanged.connect(self.on_requirement_changed)
+        quick_layout.addWidget(self.custom_format_input)
+        
+        btn_quick_exec = QPushButton("立即生成方案")
+        btn_quick_exec.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_quick_exec.setStyleSheet("background-color: #3b4261; color: #7aa2f7; padding: 6px 15px; border-radius: 4px; font-weight: bold;")
+        btn_quick_exec.clicked.connect(self.on_quick_convert_clicked)
+        quick_layout.addWidget(btn_quick_exec)
+        
+        quick_layout.addStretch()
+        card_layout.addLayout(quick_layout)
+
+        # Divider
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setStyleSheet("background-color: #414868; margin-top: 10px; margin-bottom: 10px;")
+        card_layout.addWidget(line)
+
+        # --- AI Section ---
+        lbl = QLabel("🤖 复杂需求？请输入自然语言指令 (AI 智能生成):")
         lbl.setProperty("class", "SubHeader")
         card_layout.addWidget(lbl)
 
         self.requirement_text = QTextEdit()
-        self.requirement_text.setPlaceholderText("在这里输入您的需求...")
-        self.requirement_text.setFixedHeight(200)
+        self.requirement_text.setPlaceholderText("例如：'转为mp4格式，分辨率720p，去掉前10秒'...")
+        self.requirement_text.setFixedHeight(150)
         self.requirement_text.textChanged.connect(self.on_requirement_changed)
         card_layout.addWidget(self.requirement_text)
         
@@ -263,7 +301,7 @@ class MainWindow(QMainWindow):
         prev_btn = ModernButton("← 返回")
         prev_btn.clicked.connect(lambda: self.switch_page(0))
         
-        self.generate_btn = ModernButton("✨ 生成处理方案", is_primary=True)
+        self.generate_btn = ModernButton("✨ 生成 AI 处理方案", is_primary=True)
         self.generate_btn.clicked.connect(self.generate_command)
         self.generate_btn.setFixedWidth(200)
         
@@ -274,6 +312,78 @@ class MainWindow(QMainWindow):
 
         return page
 
+    def on_format_combo_changed(self, text):
+        if text == "自定义":
+            self.custom_format_input.show()
+            self.custom_format_input.setFocus()
+        else:
+            self.custom_format_input.hide()
+            self.custom_format_input.clear()
+        
+        self.on_requirement_changed()
+
+    def on_quick_convert_clicked(self):
+        selection = self.format_combo.currentText()
+        if selection == "自定义":
+            target_ext = self.custom_format_input.text().strip().lower().replace(".", "")
+        else:
+            target_ext = selection.strip().lower().replace(".", "")
+            
+        if not target_ext:
+            QMessageBox.warning(self, "警告", "请输入或选择目标格式。")
+            return
+        self.quick_convert(target_ext)
+
+    def quick_convert(self, ext):
+        if not self.input_files:
+            QMessageBox.warning(self, "警告", "请先在第一步中添加视频文件。")
+            self.switch_page(0)
+            return
+
+        commands = []
+        audio_formats = ["mp3", "wav", "flac", "m4a", "ogg", "aac"]
+        
+        for input_file in self.input_files:
+            base, _ = os.path.splitext(input_file)
+            output_file = f"{base}.{ext}"
+            
+            # Simple unique naming if needed (handled by FFmpegRunner anyway, but let's be clean)
+            cmd = ["-i", input_file]
+            
+            if ext in audio_formats:
+                # Audio extraction: Remove video, use decent bitrate
+                cmd.extend(["-vn"])
+                if ext == "mp3":
+                    cmd.extend(["-c:a", "libmp3lame", "-q:a", "2"])
+                elif ext == "wav":
+                    cmd.extend(["-c:a", "pcm_s16le"])
+                # For others, let ffmpeg choose default encoder
+            else:
+                # Video conversion: Use copy if possible or default to h264 for better compatibility
+                # Here we use a safe default: h264 + aac
+                cmd.extend(["-c:v", "libx264", "-preset", "medium", "-crf", "23", "-c:a", "aac"])
+            
+            cmd.append(output_file)
+            commands.append(cmd)
+
+        self.generated_commands = commands
+        self.command_preview.setText(json.dumps(commands, indent=2))
+        self.task_status_label.setText(f"快速转换方案 ({ext}) 已生成！")
+        
+        self.unlocked_step = 2
+        self.switch_page(2)
+        self.execute_btn.setEnabled(True)
+        self.execute_btn.show()
+        self.btn_new_task.hide()
+        self.log_output.clear()
+        
+        # Reset UI for new execution
+        self.task_list_widget.clear()
+        self.status_header.setText("准备就绪")
+        self.btn_pause.hide()
+        self.btn_stop.hide()
+        self.exec_tabs.setCurrentIndex(0)
+
     def init_page_exec(self):
         page = QWidget()
         layout = QVBoxLayout(page)
@@ -283,43 +393,109 @@ class MainWindow(QMainWindow):
         card = CardFrame()
         card_layout = QVBoxLayout(card)
         
-        # Use QSplitter for resizable areas
-        splitter = QSplitter(Qt.Orientation.Vertical)
+        # --- Control Area ---
+        control_layout = QHBoxLayout()
         
-        # Top: Command Preview
-        preview_widget = QWidget()
-        preview_layout = QVBoxLayout(preview_widget)
-        preview_layout.setContentsMargins(0, 0, 0, 0)
-        preview_layout.addWidget(QLabel("生成的命令 (可手动微调):", objectName="SubHeader"))
+        self.status_header = QLabel("准备就绪")
+        self.status_header.setStyleSheet("font-size: 16px; font-weight: bold; color: #7aa2f7;")
+        control_layout.addWidget(self.status_header)
+        
+        control_layout.addStretch()
+        
+        self.btn_pause = QPushButton("⏸ 暂停")
+        self.btn_pause.setCheckable(True)
+        self.btn_pause.setFixedSize(110, 42)
+        self.btn_pause.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_pause.setStyleSheet("""
+            QPushButton {
+                background-color: #e0af68; 
+                color: #15161e; 
+                font-weight: bold; 
+                border-radius: 8px;
+                font-size: 15px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #ffc777;
+            }
+            QPushButton:checked {
+                background-color: #7aa2f7;
+                color: #15161e;
+            }
+        """)
+        self.btn_pause.clicked.connect(self.toggle_pause)
+        self.btn_pause.hide() # Initially hidden
+        control_layout.addWidget(self.btn_pause)
+
+        self.btn_stop = QPushButton("⏹ 停止")
+        self.btn_stop.setFixedSize(110, 42)
+        self.btn_stop.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_stop.setStyleSheet("""
+            QPushButton {
+                background-color: #f7768e; 
+                color: white; 
+                font-weight: bold; 
+                border-radius: 8px;
+                font-size: 15px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #ff9eaf;
+            }
+        """)
+        self.btn_stop.clicked.connect(self.stop_execution)
+        self.btn_stop.hide() # Initially hidden
+        control_layout.addWidget(self.btn_stop)
+
+        card_layout.addLayout(control_layout)
+        
+        # --- Main Content Splitter ---
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Left: Task List
+        task_container = QWidget()
+        task_layout = QVBoxLayout(task_container)
+        task_layout.setContentsMargins(0, 0, 0, 0)
+        task_layout.addWidget(QLabel("任务队列:", objectName="SubHeader"))
+        
+        self.task_list_widget = QListWidget()
+        self.task_list_widget.setStyleSheet("QListWidget { background-color: #16161e; border: 1px solid #414868; border-radius: 6px; }")
+        task_layout.addWidget(self.task_list_widget)
+        
+        splitter.addWidget(task_container)
+        
+        # Right: Tabs (Preview & Logs)
+        right_container = QWidget()
+        right_layout = QVBoxLayout(right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.exec_tabs = QTabWidget()
+        self.exec_tabs.setStyleSheet("""
+            QTabWidget::pane { border: 1px solid #414868; background: #16161e; border-radius: 6px; }
+            QTabBar::tab { background: #1a1b26; color: #787c99; padding: 8px 12px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+            QTabBar::tab:selected { background: #24283b; color: #c0caf5; font-weight: bold; }
+        """)
+        
+        # Tab 1: Command Preview
         self.command_preview = QTextEdit()
-        preview_layout.addWidget(self.command_preview)
+        self.command_preview.setStyleSheet("border: none;")
+        self.exec_tabs.addTab(self.command_preview, "🔧 命令详情")
         
-        # Bottom: Logs
-        log_widget = QWidget()
-        log_layout = QVBoxLayout(log_widget)
-        log_layout.setContentsMargins(0, 0, 0, 0)
-        log_layout.addWidget(QLabel("执行日志:", objectName="SubHeader"))
+        # Tab 2: Logs
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
-        self.log_output.setObjectName("logOutput")
-        log_layout.addWidget(self.log_output)
+        self.log_output.setStyleSheet("border: none; font-family: Consolas, monospace; font-size: 12px;")
+        self.exec_tabs.addTab(self.log_output, "📜 执行日志")
         
-        splitter.addWidget(preview_widget)
-        splitter.addWidget(log_widget)
+        right_layout.addWidget(self.exec_tabs)
+        splitter.addWidget(right_container)
         
-        # Set initial sizes: Preview larger (factor 2), Logs smaller (factor 1)
-        splitter.setStretchFactor(0, 2)
-        splitter.setStretchFactor(1, 1)
+        # Set initial sizes
+        splitter.setStretchFactor(0, 1) # Tasks
+        splitter.setStretchFactor(1, 1) # Details
         
-        card_layout.addWidget(splitter)
-        
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setRange(0, 0)
-        self.progress_bar.hide()
-        card_layout.addWidget(self.progress_bar)
-
-        layout.addWidget(card)
+        card_layout.addWidget(splitter, 1) # Add stretch factor 1 for internal content expansion
+        layout.addWidget(card, 1) # Add stretch factor 1 to fill vertical space
 
         nav_layout = QHBoxLayout()
         self.btn_exec_prev = ModernButton("← 返回修改指令")
@@ -449,16 +625,17 @@ class MainWindow(QMainWindow):
         
         self.generate_btn.setEnabled(True)
         self.generate_btn.setText("✨ 重新生成")
-        self.task_status_label.setText("方案已生成！请在下一步预览并执行。" )
-        
-        # Unlock and move to step 3
-        self.unlocked_step = 2
-        self.switch_page(2)
-        
         self.execute_btn.setEnabled(True)
         self.execute_btn.show()
         self.btn_new_task.hide()
         self.log_output.clear()
+        
+        # Reset UI for new execution
+        self.task_list_widget.clear()
+        self.status_header.setText("准备就绪")
+        self.btn_pause.hide()
+        self.btn_stop.hide()
+        self.exec_tabs.setCurrentIndex(0)
 
     def on_ai_error(self, error_msg):
         QMessageBox.critical(self, "AI 错误", f"生成命令失败:\n{error_msg}")
@@ -482,16 +659,91 @@ class MainWindow(QMainWindow):
 
         ffmpeg_path = self.config.get("ffmpeg_path")
         
-        self.execute_btn.setEnabled(False)
+        # UI Setup for Execution
+        self.execute_btn.hide()
         self.btn_exec_prev.setEnabled(False)
         self.log_output.clear()
-        self.progress_bar.show()
+        self.task_list_widget.clear()
+        self.task_items = []
         
+        # Populate Task List
+        for i, cmd in enumerate(commands):
+            # Try to guess output filename for display
+            display_name = f"任务 {i+1}"
+            try:
+                # Simple heuristic: Last argument is usually output
+                last_arg = cmd[-1]
+                if not last_arg.startswith("-"):
+                     display_name = os.path.basename(last_arg)
+            except:
+                pass
+            
+            item_widget = TaskItemWidget(display_name)
+            list_item = QListWidgetItem(self.task_list_widget)
+            # Explicitly set height to ensure content fits (approx 55px)
+            list_item.setSizeHint(QSize(item_widget.sizeHint().width(), 55))
+            self.task_list_widget.addItem(list_item)
+            self.task_list_widget.setItemWidget(list_item, item_widget)
+            self.task_items.append(item_widget)
+
+        self.btn_pause.show()
+        self.btn_pause.setChecked(False)
+        self.btn_pause.setText("⏸ 暂停")
+        self.btn_stop.show()
+        self.status_header.setText("🚀正在处理中...")
+        self.exec_tabs.setCurrentIndex(1) # Switch to Logs
+
         self.ffmpeg_runner = FFmpegRunner(ffmpeg_path, commands)
         self.ffmpeg_runner.log_signal.connect(self.append_log)
+        self.ffmpeg_runner.progress_signal.connect(self.on_progress_update)
         self.ffmpeg_runner.finished_signal.connect(self.on_execution_finished)
         self.ffmpeg_runner.error_signal.connect(self.append_log)
         self.ffmpeg_runner.start()
+
+    def on_progress_update(self, current_idx, total, percent):
+        # current_idx is 1-based
+        idx = current_idx - 1
+        if 0 <= idx < len(self.task_items):
+            widget = self.task_items[idx]
+            widget.set_progress(percent)
+            widget.set_active(True)
+            
+            if percent >= 100:
+                widget.set_status("完成", "#9ece6a") # Green
+            else:
+                widget.set_status(f"处理中 {percent:.1f}%", "#7aa2f7") # Blue
+            
+            # Mark previous tasks as completed (just in case)
+            for prev_idx in range(idx):
+                self.task_items[prev_idx].set_status("完成", "#9ece6a")
+                self.task_items[prev_idx].set_progress(100)
+                self.task_items[prev_idx].set_active(False)
+
+            # Scroll to current item
+            self.task_list_widget.scrollToItem(self.task_list_widget.item(idx))
+
+    def toggle_pause(self):
+        if self.btn_pause.isChecked():
+            self.ffmpeg_runner.pause()
+            self.btn_pause.setText("▶ 继续")
+            self.status_header.setText("⏸ 任务已暂停")
+            # Set current task status
+            # We need to track current index, but simplified:
+            self.append_log("[UI] 请求暂停...")
+        else:
+            self.ffmpeg_runner.resume()
+            self.btn_pause.setText("⏸ 暂停")
+            self.status_header.setText("🚀 正在处理中...")
+            self.append_log("[UI] 请求继续...")
+
+    def stop_execution(self):
+        reply = QMessageBox.question(self, '确认停止', '确定要停止当前所有任务吗？', 
+                                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                                     QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
+            self.ffmpeg_runner.stop()
+            self.status_header.setText("⏹ 任务已停止")
+            self.append_log("[UI] 正在停止任务...")
 
     def append_log(self, text):
         self.log_output.append(text)
@@ -500,18 +752,30 @@ class MainWindow(QMainWindow):
         self.log_output.setTextCursor(cursor)
 
     def on_execution_finished(self, exit_code):
-        self.progress_bar.hide()
+        self.btn_pause.hide()
+        self.btn_stop.hide()
         self.btn_exec_prev.setEnabled(True)
         
         if exit_code == 0:
+            self.status_header.setText("✅ 所有任务已完成")
             self.execute_btn.hide()
             self.btn_new_task.show()
             QMessageBox.information(self, "成功", "所有任务处理完成！")
             self.append_log("\n[SUCCESS] 全部任务已完成")
+            
+            # Ensure all marked as done
+            for widget in self.task_items:
+                if widget.status_label.text() != "完成":
+                    widget.set_status("完成", "#9ece6a")
+                    widget.set_progress(100)
+                    widget.set_active(False)
+
         else:
+            self.status_header.setText(f"❌ 任务中断 (代码 {exit_code})")
             self.execute_btn.setEnabled(True)
-            QMessageBox.warning(self, "失败", f"处理过程中断，退出代码 {exit_code}")
-            self.append_log(f"\n[FAILED] 错误代码 {exit_code}")
+            self.execute_btn.show()
+            QMessageBox.warning(self, "提示", f"处理过程已结束或中断。")
+            self.append_log(f"\n[FAILED/STOPPED] 退出代码 {exit_code}")
 
     def reset_task(self):
         self.clear_files()
@@ -520,6 +784,14 @@ class MainWindow(QMainWindow):
         self.generate_btn.setText("✨ 生成处理方案") # Reset button text
         self.command_preview.clear()
         self.log_output.clear()
+        
+        # Reset Execution Page State
+        self.task_list_widget.clear()
+        self.status_header.setText("准备就绪")
+        self.btn_pause.hide()
+        self.btn_stop.hide()
+        self.exec_tabs.setCurrentIndex(0) # Switch back to Preview tab
+        
         self.execute_btn.show()
         self.execute_btn.setEnabled(False)
         self.btn_new_task.hide()

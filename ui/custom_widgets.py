@@ -1,9 +1,7 @@
 from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QHBoxLayout, 
-                             QFrame, QVBoxLayout, QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QSize
-from PyQt6.QtWidgets import (QWidget, QLabel, QPushButton, QHBoxLayout, 
-                             QFrame, QVBoxLayout, QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QSize
+                             QFrame, QVBoxLayout, QGraphicsDropShadowEffect, QProgressBar, QStackedWidget,
+                             QGraphicsOpacityEffect)
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QAbstractAnimation
 from PyQt6.QtGui import QColor, QDragEnterEvent, QDropEvent, QMouseEvent, QPixmap
 from utils.helpers import resource_path
 
@@ -13,13 +11,79 @@ class CardFrame(QFrame):
         super().__init__(parent)
         self.setProperty("class", "CardFrame") # For QSS styling
         
-        # Optional: Add shadow
+        # Shadow effect removed to prevent QPainter conflicts with AnimatedStackedWidget
         # shadow = QGraphicsDropShadowEffect(self)
-        # shadow.setBlurRadius(15)
-        # shadow.setXOffset(0)
-        # shadow.setYOffset(4)
-        # shadow.setColor(QColor(0, 0, 0, 80))
-        # self.setGraphicsEffect(shadow)
+        # ...
+
+class AnimatedStackedWidget(QStackedWidget):
+    """A QStackedWidget with fade transition animation."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.fade_duration = 300
+        self.fade_curve = QEasingCurve.Type.OutCubic
+        self._is_animating = False
+
+    def setCurrentIndex(self, index):
+        if index == self.currentIndex() or self._is_animating:
+            return
+
+        current_widget = self.currentWidget()
+        next_widget = self.widget(index)
+        
+        if not current_widget:
+            super().setCurrentIndex(index)
+            return
+
+        self._is_animating = True
+        
+        # Prepare next widget
+        next_widget.setVisible(True)
+        next_widget.raise_()
+        # Set geometry to cover the area (in case it wasn't)
+        next_widget.setGeometry(self.rect())
+
+        # Effects
+        self.effect_out = QGraphicsOpacityEffect(current_widget)
+        self.effect_in = QGraphicsOpacityEffect(next_widget)
+        current_widget.setGraphicsEffect(self.effect_out)
+        next_widget.setGraphicsEffect(self.effect_in)
+        
+        self.effect_out.setOpacity(1.0)
+        self.effect_in.setOpacity(0.0)
+
+        # Animations
+        self.anim_out = QPropertyAnimation(self.effect_out, b"opacity")
+        self.anim_out.setDuration(self.fade_duration)
+        self.anim_out.setStartValue(1.0)
+        self.anim_out.setEndValue(0.0)
+        self.anim_out.setEasingCurve(self.fade_curve)
+
+        self.anim_in = QPropertyAnimation(self.effect_in, b"opacity")
+        self.anim_in.setDuration(self.fade_duration)
+        self.anim_in.setStartValue(0.0)
+        self.anim_in.setEndValue(1.0)
+        self.anim_in.setEasingCurve(self.fade_curve)
+
+        # Group
+        self.anim_group = QParallelAnimationGroup()
+        self.anim_group.addAnimation(self.anim_out)
+        self.anim_group.addAnimation(self.anim_in)
+        
+        def on_finished():
+            current_widget.setGraphicsEffect(None)
+            next_widget.setGraphicsEffect(None)
+            current_widget.hide()
+            super(AnimatedStackedWidget, self).setCurrentIndex(index)
+            self._is_animating = False
+            # Clean up references to avoid GC issues during callback
+            self.anim_group = None
+            self.anim_out = None
+            self.anim_in = None
+            self.effect_out = None
+            self.effect_in = None
+
+        self.anim_group.finished.connect(on_finished)
+        self.anim_group.start()
 
 class ModernButton(QPushButton):
     """A styled button."""
@@ -27,6 +91,7 @@ class ModernButton(QPushButton):
         super().__init__(text, parent)
         if is_primary:
             self.setProperty("class", "PrimaryButton")
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
 
 class CustomTitleBar(QFrame):
     """Custom title bar for frameless window."""
@@ -173,3 +238,56 @@ class DropLabel(QLabel):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
+
+class TaskItemWidget(QWidget):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
+
+        # Top row: Title and Status
+        top_row = QHBoxLayout()
+        self.title_label = QLabel(title)
+        self.title_label.setStyleSheet("color: #c0caf5; font-weight: bold;")
+        top_row.addWidget(self.title_label)
+        
+        top_row.addStretch()
+        
+        self.status_label = QLabel("等待中")
+        self.status_label.setStyleSheet("color: #565f89; font-size: 12px;")
+        top_row.addWidget(self.status_label)
+        
+        layout.addLayout(top_row)
+
+        # Progress Bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: none;
+                background-color: #1a1b26;
+                border-radius: 3px;
+            }
+            QProgressBar::chunk {
+                background-color: #7aa2f7;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.progress_bar)
+
+    def set_progress(self, value):
+        self.progress_bar.setValue(int(value))
+
+    def set_status(self, status, color="#565f89"):
+        self.status_label.setText(status)
+        self.status_label.setStyleSheet(f"color: {color}; font-size: 12px;")
+
+    def set_active(self, active=True):
+        if active:
+            self.setStyleSheet("background-color: #2f2f45; border-radius: 6px;")
+        else:
+            self.setStyleSheet("background-color: transparent;")

@@ -206,6 +206,80 @@ QListWidget::item:hover {{
     background-color: {COLORS['surface']};
 }}
 
+/* ComboBox */
+QComboBox {{
+    background-color: {COLORS['input_bg']};
+    border: 1px solid {COLORS['border']};
+    border-radius: 6px;
+    padding: 6px 10px;
+    min-width: 80px;
+    color: {COLORS['text_main']};
+    /* Fix for popup covering the box and styling issues */
+    combobox-popup: 0; 
+}}
+
+QComboBox:hover {{
+    border-color: {COLORS['primary']};
+    background-color: {COLORS['surface']};
+}}
+
+QComboBox:on {{ /* When popup is open */
+    border-color: {COLORS['primary']};
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}}
+
+QComboBox::drop-down {{
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 30px;
+    border-left: 1px solid {COLORS['border']}; /* Separator line */
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+    background-color: transparent;
+}}
+
+QComboBox::down-arrow {{
+    image: url(assets/arrow_down.svg);
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+}}
+
+QComboBox::down-arrow:hover, QComboBox::down-arrow:on {{
+    image: url(assets/arrow_down_active.svg);
+}}
+
+/* The Popup List */
+QComboBox QAbstractItemView {{
+    background-color: {COLORS['input_bg']};
+    border: 1px solid {COLORS['border']};
+    border-top: none;
+    selection-background-color: {COLORS['surface_hover']};
+    selection-color: {COLORS['text_main']};
+    outline: 0;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+    padding: 4px;
+}}
+
+QComboBox QAbstractItemView::item {{
+    min-height: 25px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: {COLORS['text_main']};
+}}
+
+QComboBox QAbstractItemView::item:hover {{
+    background-color: {COLORS['surface_hover']};
+    color: {COLORS['primary']};
+}}
+
+QComboBox QAbstractItemView::item:selected {{
+    background-color: {COLORS['primary']};
+    color: {COLORS['background']};
+}}
+
 /* Splitter */
 QSplitter::handle {{
     background-color: {COLORS['border']};
