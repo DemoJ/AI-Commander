@@ -191,10 +191,13 @@ class MainWindow(QMainWindow):
 
         toolbar = QHBoxLayout()
         btn_add_files = ModernButton("📄 添加文件")
+        btn_add_files.setFixedHeight(36)
         btn_add_files.clicked.connect(self.browse_files)
         btn_add_folder = ModernButton("📂 添加文件夹")
+        btn_add_folder.setFixedHeight(36)
         btn_add_folder.clicked.connect(self.browse_folder)
         btn_clear = ModernButton("🗑 清空列表")
+        btn_clear.setFixedHeight(36)
         btn_clear.clicked.connect(self.clear_files)
         
         toolbar.addWidget(btn_add_files)
@@ -236,78 +239,96 @@ class MainWindow(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(15)
+        layout.setSpacing(30)
 
-        card = CardFrame()
-        card_layout = QVBoxLayout(card)
-        
-        # --- Quick Actions Section ---
-        lbl_quick = QLabel("⚡ 快速格式转换 (不使用 AI):")
+        # --- Card 1: Quick Format Conversion ---
+        quick_card = CardFrame()
+        quick_layout = QVBoxLayout(quick_card)
+        quick_layout.setContentsMargins(25, 25, 25, 25)
+        quick_layout.setSpacing(15)
+
+        lbl_quick = QLabel("⚡ 快速格式转换 (不使用 AI)")
         lbl_quick.setProperty("class", "SubHeader")
-        card_layout.addWidget(lbl_quick)
+        quick_layout.addWidget(lbl_quick)
 
-        quick_layout = QHBoxLayout()
-        quick_layout.addWidget(QLabel("将选中的文件转换为:"))
+        # Content: Single Toolbar Row
+        quick_toolbar = QHBoxLayout()
+        quick_toolbar.setSpacing(10) # Tighter spacing for cohesive look
+        
+        quick_toolbar.addWidget(QLabel("目标格式:"))
         
         self.format_combo = QComboBox()
         self.format_combo.addItems(["mp4", "mp3", "mkv", "mov", "wav", "flac", "avi", "webm", "自定义"])
-        self.format_combo.setEditable(False) 
+        self.format_combo.setEditable(False)
+        self.format_combo.setFixedSize(120, 36)
         self.format_combo.currentTextChanged.connect(self.on_format_combo_changed)
-        quick_layout.addWidget(self.format_combo)
+        quick_toolbar.addWidget(self.format_combo)
         
         self.custom_format_input = QLineEdit()
-        self.custom_format_input.setPlaceholderText("输入格式 (如 m4a)")
-        self.custom_format_input.setFixedWidth(160)
-        self.custom_format_input.hide() # Initially hidden
+        self.custom_format_input.setPlaceholderText("输入格式")
+        self.custom_format_input.setFixedSize(100, 36)
+        self.custom_format_input.hide() 
         self.custom_format_input.textChanged.connect(self.on_requirement_changed)
-        quick_layout.addWidget(self.custom_format_input)
+        quick_toolbar.addWidget(self.custom_format_input)
         
-        btn_quick_exec = QPushButton("立即生成方案")
-        btn_quick_exec.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_quick_exec.setStyleSheet("background-color: #3b4261; color: #7aa2f7; padding: 6px 15px; border-radius: 4px; font-weight: bold;")
+        # Button: Inline, compact, matching height
+        btn_quick_exec = ModernButton("⚡生成", is_primary=True)
+        btn_quick_exec.setFixedSize(90, 36)
         btn_quick_exec.clicked.connect(self.on_quick_convert_clicked)
-        quick_layout.addWidget(btn_quick_exec)
+        quick_toolbar.addWidget(btn_quick_exec)
         
-        quick_layout.addStretch()
-        card_layout.addLayout(quick_layout)
+        quick_toolbar.addStretch() # Push everything to left
+        
+        quick_layout.addLayout(quick_toolbar)
+        layout.addWidget(quick_card)
 
-        # Divider
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setStyleSheet("background-color: #414868; margin-top: 10px; margin-bottom: 10px;")
-        card_layout.addWidget(line)
+        # --- Card 2: AI Generation ---
+        ai_card = CardFrame()
+        ai_layout = QVBoxLayout(ai_card)
+        ai_layout.setContentsMargins(25, 25, 25, 25)
+        ai_layout.setSpacing(20)
 
-        # --- AI Section ---
-        lbl = QLabel("🤖 复杂需求？请输入自然语言指令 (AI 智能生成):")
-        lbl.setProperty("class", "SubHeader")
-        card_layout.addWidget(lbl)
+        lbl_ai = QLabel("🤖 复杂需求 (AI 智能生成)")
+        lbl_ai.setProperty("class", "SubHeader")
+        ai_layout.addWidget(lbl_ai)
+
+        lbl_hint = QLabel("请输入自然语言指令，例如：'转为mp4格式，分辨率720p，去掉前10秒'...")
+        lbl_hint.setStyleSheet("color: #787c99; font-size: 13px; margin-bottom: 5px;")
+        ai_layout.addWidget(lbl_hint)
 
         self.requirement_text = QTextEdit()
-        self.requirement_text.setPlaceholderText("例如：'转为mp4格式，分辨率720p，去掉前10秒'...")
-        self.requirement_text.setFixedHeight(150)
+        self.requirement_text.setPlaceholderText("在这里输入您的详细需求...")
+        self.requirement_text.setFixedHeight(100)
         self.requirement_text.textChanged.connect(self.on_requirement_changed)
-        card_layout.addWidget(self.requirement_text)
+        ai_layout.addWidget(self.requirement_text)
         
-        layout.addWidget(card)
-
+        # AI Action Row
+        ai_action_layout = QHBoxLayout()
+        
         self.task_status_label = QLabel("")
-        self.task_status_label.setStyleSheet("color: #e0af68; font-size: 14px;")
-        layout.addWidget(self.task_status_label)
+        self.task_status_label.setStyleSheet("color: #e0af68; font-size: 13px;")
+        ai_action_layout.addWidget(self.task_status_label)
+        
+        ai_action_layout.addStretch()
+        
+        self.generate_btn = ModernButton("✨生成 AI 方案", is_primary=True)
+        self.generate_btn.setFixedSize(150, 40)
+        self.generate_btn.clicked.connect(self.generate_command)
+        ai_action_layout.addWidget(self.generate_btn)
+        
+        ai_layout.addLayout(ai_action_layout)
+        layout.addWidget(ai_card)
 
         layout.addStretch()
 
+        # --- Bottom Nav ---
         nav_layout = QHBoxLayout()
-        prev_btn = ModernButton("← 返回")
+        prev_btn = ModernButton("← 返回文件列表")
+        prev_btn.setFixedSize(150, 42)
         prev_btn.clicked.connect(lambda: self.switch_page(0))
-        
-        self.generate_btn = ModernButton("✨ 生成 AI 处理方案", is_primary=True)
-        self.generate_btn.clicked.connect(self.generate_command)
-        self.generate_btn.setFixedWidth(200)
-        
         nav_layout.addWidget(prev_btn)
         nav_layout.addStretch()
-        nav_layout.addWidget(self.generate_btn)
+        
         layout.addLayout(nav_layout)
 
         return page
@@ -499,12 +520,15 @@ class MainWindow(QMainWindow):
 
         nav_layout = QHBoxLayout()
         self.btn_exec_prev = ModernButton("← 返回修改指令")
+        self.btn_exec_prev.setFixedSize(160, 42)
         self.btn_exec_prev.clicked.connect(lambda: self.switch_page(1))
         
         self.execute_btn = ModernButton("🚀 开始执行处理", is_primary=True)
+        self.execute_btn.setFixedSize(180, 42)
         self.execute_btn.clicked.connect(self.execute_command)
 
         self.btn_new_task = ModernButton("🔄 开始新任务")
+        self.btn_new_task.setFixedSize(180, 42)
         self.btn_new_task.clicked.connect(self.reset_task)
         self.btn_new_task.hide()
 

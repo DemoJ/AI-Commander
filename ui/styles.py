@@ -79,9 +79,12 @@ QPushButton {{
     background-color: {COLORS['surface']};
     border: 1px solid {COLORS['border']};
     color: {COLORS['text_main']};
-    padding: 8px 16px;
+    padding: 0px 8px;
+    min-height: 32px;
     border-radius: 8px;
     font-weight: 600;
+    text-align: center;
+    outline: none;
 }}
 QPushButton:hover {{
     background-color: {COLORS['surface_hover']};
@@ -102,11 +105,12 @@ QPushButton.PrimaryButton {{
     background-color: {COLORS['primary']};
     color: {COLORS['background']};
     border: none;
+    padding: 0px 12px;
+    min-height: 36px;
 }}
 QPushButton.PrimaryButton:hover {{
     background-color: {COLORS['primary_hover']};
 }}
-
 /* Inputs */
 QLineEdit, QTextEdit {{
     background-color: {COLORS['input_bg']};
