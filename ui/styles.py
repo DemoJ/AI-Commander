@@ -8,8 +8,8 @@ ARROW_DOWN_ACTIVE = resource_path(os.path.join("assets", "arrow_down_active.svg"
 # Color Palette
 COLORS = {
     "background": "#1e1e2e",       # Deep dark blue/gray
-    "surface": "#252535",          # Slightly lighter for cards
-    "surface_hover": "#2f2f45",    # Hover state for surface
+    "surface": "#2a2b3d",          # Slightly lighter for cards (increased contrast)
+    "surface_hover": "#3a3c55",    # Hover state for surface
     "primary": "#7aa2f7",          # Bright Blue
     "primary_hover": "#8ab0ff",    # Lighter Blue
     "secondary": "#bb9af7",        # Purple accent
@@ -76,18 +76,18 @@ QFrame.CardFrame {{
 
 /* Buttons */
 QPushButton {{
-    background-color: {COLORS['surface']};
-    border: 1px solid {COLORS['border']};
+    background-color: #3b3d5c; /* Lighter background for better visibility */
+    border: 1px solid #565f89; /* More visible border */
     color: {COLORS['text_main']};
-    padding: 0px 8px;
-    min-height: 32px;
+    padding: 0px 16px;
+    min-height: 36px;
     border-radius: 8px;
     font-weight: 600;
     text-align: center;
     outline: none;
 }}
 QPushButton:hover {{
-    background-color: {COLORS['surface_hover']};
+    background-color: #444b6a;
     border-color: {COLORS['primary']};
 }}
 QPushButton:pressed {{
@@ -105,18 +105,33 @@ QPushButton.PrimaryButton {{
     background-color: {COLORS['primary']};
     color: {COLORS['background']};
     border: none;
-    padding: 0px 12px;
+    padding: 0px 20px;
     min-height: 36px;
 }}
 QPushButton.PrimaryButton:hover {{
     background-color: {COLORS['primary_hover']};
+}}
+
+/* Outline Button (Secondary) */
+QPushButton.OutlineButton {{
+    background-color: transparent;
+    border: 1px solid {COLORS['primary']};
+    color: {COLORS['primary']};
+    padding: 0px 16px;
+}}
+QPushButton.OutlineButton:hover {{
+    background-color: rgba(122, 162, 247, 0.1);
+    border-color: {COLORS['primary_hover']};
+}}
+QPushButton.OutlineButton:pressed {{
+    background-color: rgba(122, 162, 247, 0.2);
 }}
 /* Inputs */
 QLineEdit, QTextEdit {{
     background-color: {COLORS['input_bg']};
     border: 1px solid {COLORS['border']};
     border-radius: 8px;
-    padding: 8px;
+    padding: 10px;
     color: {COLORS['text_main']};
     selection-background-color: {COLORS['primary']};
     selection-color: {COLORS['background']};
@@ -145,9 +160,9 @@ QLabel.Header {{
     color: {COLORS['text_main']};
 }}
 QLabel.SubHeader {{
-    font-size: 14px;
-    font-weight: 600;
-    color: {COLORS['text_dim']};
+    font-size: 16px;
+    font-weight: 700;
+    color: {COLORS['text_main']};
 }}
 
 /* Custom Title Bar */

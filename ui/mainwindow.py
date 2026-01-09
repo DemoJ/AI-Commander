@@ -17,7 +17,7 @@ from core.ffmpeg_runner import FFmpegRunner
 
 # Import Custom Components
 from ui.custom_widgets import CustomTitleBar, CardFrame, ModernButton, DropLabel, TaskItemWidget, AnimatedStackedWidget
-from ui.styles import APP_STYLE
+from ui.styles import APP_STYLE, COLORS
 
 class AIWorker(QThread):
     finished = pyqtSignal(list)
@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
         self.step_container = QWidget()
         self.step_container.setFixedHeight(60)
         step_layout = QHBoxLayout(self.step_container)
+        # Set left margin to 40. The Button WIDGET (hover box) will align perfectly with the Card Border.
         step_layout.setContentsMargins(40, 0, 40, 0)
         step_layout.setSpacing(10)
         
@@ -82,7 +83,7 @@ class MainWindow(QMainWindow):
             btn = QPushButton(text)
             btn.setFlat(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet("text-align: left; padding: 5px; font-weight: bold; font-size: 16px;")
+            btn.setStyleSheet("text-align: left; padding: 5px; font-weight: bold; font-size: 14px;")
             # Use lambda with default arg to capture 'i' correctly
             btn.clicked.connect(lambda checked, idx=i: self.on_step_clicked(idx))
             
@@ -91,7 +92,8 @@ class MainWindow(QMainWindow):
 
             if i < len(steps) - 1:
                 arrow = QLabel(">")
-                arrow.setStyleSheet("color: #3b3b50; font-size: 16px; margin: 0 5px;")
+                # Brightened to match main text color for stronger path connection
+                arrow.setStyleSheet(f"color: {COLORS['text_main']}; font-size: 14px; margin: 0 5px;")
                 step_layout.addWidget(arrow)
             
         step_layout.addStretch()
@@ -100,7 +102,8 @@ class MainWindow(QMainWindow):
         # 3. Content Area (Stacked)
         content_area = QWidget()
         content_layout = QVBoxLayout(content_area)
-        content_layout.setContentsMargins(20, 0, 20, 20)
+        # Unified layout margin to 40
+        content_layout.setContentsMargins(40, 0, 40, 20)
         
         self.content_stack = AnimatedStackedWidget()
         content_layout.addWidget(self.content_stack)
@@ -131,14 +134,17 @@ class MainWindow(QMainWindow):
 
     def switch_page(self, index):
         self.content_stack.setCurrentIndex(index)
-        self.update_step_indicator()
+        self.update_step_indicator(target_index=index)
 
-    def update_step_indicator(self):
-        current = self.content_stack.currentIndex()
+    def update_step_indicator(self, target_index=None):
+        if target_index is not None:
+            current = target_index
+        else:
+            current = self.content_stack.currentIndex()
         
         colors = {
             "active": "#7aa2f7",    # Blue
-            "completed": "#9ece6a", # Green
+            "unlocked": "#c0caf5",  # Standard Bright Text (Not disabled)
             "locked": "#565f89"     # Dim
         }
 
@@ -146,14 +152,12 @@ class MainWindow(QMainWindow):
             # Determine state
             if i == current:
                 color = colors["active"]
-            elif i < current:
-                color = colors["completed"]
+            elif i <= self.unlocked_step:
+                 # Unlocked but not active
+                 color = colors["unlocked"]
             else:
-                # If it's a future step, check if it's unlocked
-                if i <= self.unlocked_step:
-                     color = colors["completed"] # Unlocked but not active (viewing previous)
-                else:
-                    color = colors["locked"]
+                # Locked
+                color = colors["locked"]
             
             # Apply style
             # Locked steps shouldn't look clickable
@@ -162,7 +166,7 @@ class MainWindow(QMainWindow):
             else:
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            btn.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 16px; border: none; text-align: left;")
+            btn.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px; border: none; text-align: left;")
 
     def invalidate_steps_from(self, step_index):
         """
@@ -183,7 +187,8 @@ class MainWindow(QMainWindow):
     def init_page_files(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(10, 10, 10, 10)
+        # Increased bottom margin to 40 for safety
+        layout.setContentsMargins(0, 10, 0, 40)
         layout.setSpacing(15)
 
         card = CardFrame()
@@ -220,6 +225,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(card)
 
         nav_layout = QHBoxLayout()
+        # Set margins to 0 to align button border with card border
+        nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.addStretch()
         next_btn = ModernButton("下一步: 定义任务 →", is_primary=True)
         next_btn.clicked.connect(self.go_to_task)
@@ -238,24 +245,29 @@ class MainWindow(QMainWindow):
     def init_page_task(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(10, 10, 10, 10)
+        # Increased bottom margin to 40 for safety
+        layout.setContentsMargins(0, 10, 0, 40)
         layout.setSpacing(30)
 
         # --- Card 1: Quick Format Conversion ---
         quick_card = CardFrame()
         quick_layout = QVBoxLayout(quick_card)
-        quick_layout.setContentsMargins(25, 25, 25, 25)
-        quick_layout.setSpacing(15)
+        # Increased margins and spacing for better breathing room
+        quick_layout.setContentsMargins(25, 30, 25, 25)
+        quick_layout.setSpacing(25) 
 
-        lbl_quick = QLabel("⚡ 快速格式转换 (不使用 AI)")
+        lbl_quick = QLabel("快速格式转换")
         lbl_quick.setProperty("class", "SubHeader")
         quick_layout.addWidget(lbl_quick)
 
         # Content: Single Toolbar Row
         quick_toolbar = QHBoxLayout()
-        quick_toolbar.setSpacing(10) # Tighter spacing for cohesive look
+        quick_toolbar.setSpacing(20) # Increased spacing for better proximity
+        quick_toolbar.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         
-        quick_toolbar.addWidget(QLabel("目标格式:"))
+        lbl_target = QLabel("目标格式:")
+        lbl_target.setFixedHeight(36)
+        quick_toolbar.addWidget(lbl_target)
         
         self.format_combo = QComboBox()
         self.format_combo.addItems(["mp4", "mp3", "mkv", "mov", "wav", "flac", "avi", "webm", "自定义"])
@@ -271,13 +283,14 @@ class MainWindow(QMainWindow):
         self.custom_format_input.textChanged.connect(self.on_requirement_changed)
         quick_toolbar.addWidget(self.custom_format_input)
         
-        # Button: Inline, compact, matching height
-        btn_quick_exec = ModernButton("⚡生成", is_primary=True)
+        # Button: Now using OutlineButton style and placed next to input
+        btn_quick_exec = ModernButton("生成")
+        btn_quick_exec.setProperty("class", "OutlineButton")
         btn_quick_exec.setFixedSize(90, 36)
         btn_quick_exec.clicked.connect(self.on_quick_convert_clicked)
         quick_toolbar.addWidget(btn_quick_exec)
         
-        quick_toolbar.addStretch() # Push everything to left
+        quick_toolbar.addStretch() # Push everything to the left
         
         quick_layout.addLayout(quick_toolbar)
         layout.addWidget(quick_card)
@@ -286,14 +299,14 @@ class MainWindow(QMainWindow):
         ai_card = CardFrame()
         ai_layout = QVBoxLayout(ai_card)
         ai_layout.setContentsMargins(25, 25, 25, 25)
-        ai_layout.setSpacing(20)
+        ai_layout.setSpacing(15)
 
-        lbl_ai = QLabel("🤖 复杂需求 (AI 智能生成)")
+        lbl_ai = QLabel("复杂需求 (AI 智能生成)")
         lbl_ai.setProperty("class", "SubHeader")
         ai_layout.addWidget(lbl_ai)
 
         lbl_hint = QLabel("请输入自然语言指令，例如：'转为mp4格式，分辨率720p，去掉前10秒'...")
-        lbl_hint.setStyleSheet("color: #787c99; font-size: 13px; margin-bottom: 5px;")
+        lbl_hint.setStyleSheet("color: #787c99; font-size: 13px; margin-bottom: 12px;") 
         ai_layout.addWidget(lbl_hint)
 
         self.requirement_text = QTextEdit()
@@ -311,8 +324,8 @@ class MainWindow(QMainWindow):
         
         ai_action_layout.addStretch()
         
-        self.generate_btn = ModernButton("✨生成 AI 方案", is_primary=True)
-        self.generate_btn.setFixedSize(150, 40)
+        self.generate_btn = ModernButton("生成 AI 方案", is_primary=True)
+        self.generate_btn.setFixedSize(150, 36) 
         self.generate_btn.clicked.connect(self.generate_command)
         ai_action_layout.addWidget(self.generate_btn)
         
@@ -323,8 +336,12 @@ class MainWindow(QMainWindow):
 
         # --- Bottom Nav ---
         nav_layout = QHBoxLayout()
+        # Explicitly set all margins to 0. 
+        # The content_layout's 40px margin already positions this layout's edge at X=40.
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        
         prev_btn = ModernButton("← 返回文件列表")
-        prev_btn.setFixedSize(150, 42)
+        prev_btn.setFixedSize(150, 36) 
         prev_btn.clicked.connect(lambda: self.switch_page(0))
         nav_layout.addWidget(prev_btn)
         nav_layout.addStretch()
@@ -408,13 +425,15 @@ class MainWindow(QMainWindow):
     def init_page_exec(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(10, 10, 10, 10)
+        # Increased bottom margin to 40 for safety
+        layout.setContentsMargins(0, 10, 0, 40)
         layout.setSpacing(15)
 
         card = CardFrame()
         card_layout = QVBoxLayout(card)
         
         # --- Control Area ---
+        # ... (skipping some internal code for brevity in match, but providing context)
         control_layout = QHBoxLayout()
         
         self.status_header = QLabel("准备就绪")
@@ -424,6 +443,7 @@ class MainWindow(QMainWindow):
         control_layout.addStretch()
         
         self.btn_pause = QPushButton("⏸ 暂停")
+        # ... (rest of control_layout)
         self.btn_pause.setCheckable(True)
         self.btn_pause.setFixedSize(110, 42)
         self.btn_pause.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -519,6 +539,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(card, 1) # Add stretch factor 1 to fill vertical space
 
         nav_layout = QHBoxLayout()
+        # Set margin to 0 to align button border with card border
+        nav_layout.setContentsMargins(0, 0, 0, 0)
         self.btn_exec_prev = ModernButton("← 返回修改指令")
         self.btn_exec_prev.setFixedSize(160, 42)
         self.btn_exec_prev.clicked.connect(lambda: self.switch_page(1))
